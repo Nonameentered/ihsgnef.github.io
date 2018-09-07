@@ -5,4 +5,4 @@ author: "Shi Feng"
 comments: true
 ---
 
-TODO: The header on the google chrome tab says "Minima is a ...."
+Under construction, see our [paper](https://arxiv.org/abs/1804.07781) in the meantime.
