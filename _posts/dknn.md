@@ -4,7 +4,7 @@ title: "Deep K-Nearest Neighbors for NLP"
 author: "Eric Wallace"
 ---
 
-TLDR; Our previous [blog](https://zerobatchsize.net/2018/08/08/rawr.html) showed that interpreting neural networks can be difficult due to issues in the underlying model's confidence. Here, we fix some of the model confidence issues by applying [Deep k-Nearest Neighbors](https://arxiv.org/abs/1803.04765) to NLP, which improves model interpretations. 
+TLDR; Our previous [paper](https://zerobatchsize.net/rawr.html) showed that interpreting neural networks can be difficult due to issues in the underlying model's confidence. Here, we fix some of the model confidence issues by applying [Deep k-Nearest Neighbors](https://arxiv.org/abs/1803.04765) to NLP, which improves model interpretations. 
 
 Our [paper](blah) TODO link, full [code](https://github.com/Eric-Wallace/deep-knn), and [supplementary website](https://sites.google.com/view/language-dknn/) provide further details. 
 
@@ -20,19 +20,19 @@ One common interpretation technique highlights input features based on their imp
 ![Obelisk Photo](/images/obelisk.png)
 ![Obelisk Smoothgrad](/images/obelisk_smoothgrad.png)
 
-For NLP, one simple interpretation method is [Leave One Out](https://arxiv.org/abs/1612.08220): individually remove each word from the input and measure how much a word's removal changes the prediction confidence. If a word's removal considerably changes the output confidence, that word is deemed important to the prediction.
+For NLP, one simple interpretation method is [Leave One Out](https://arxiv.org/abs/1612.08220): individually remove each word from the input and measure the change in model confidence. If a word's removal considerably changes the output confidence, that word is deemed important to the prediction.
 
-# Existing Model and Interpretation Limitations
+# Interpretation and Model Limitations
 
-Recent work has identified a number of [limitations](https://arxiv.org/abs/1710.10547) for [saliency-based](https://arxiv.org/abs/1711.00867) [interpretations](https://arxiv.org/abs/1804.07781). We discussed one particular limitation in a previous [blog](https://zerobatchsize.net/2018/08/08/rawr.html), the overconfidence issue of neural models.
+Recent work has identified a number of [limitations](https://arxiv.org/abs/1710.10547) for [saliency-based](https://arxiv.org/abs/1711.00867) [interpretations](https://arxiv.org/abs/1804.07781). We discussed one particular limitation in a previous [blog](https://zerobatchsize.net/rawr.html), the overconfidence issue of neural models.
 
-In short, a neural network's prediction confidence can be unreasonably high even when the input is void of any predictive information. Therefore, when removing features with a method like Leave One Out, the change in confidence may not properly reflect whether the "important" input features have been removed. Consequently, interpretation methods that rely on confidence may fail due to the overconfidence of the underlying model.
+In short, a neural network's confidence can be unreasonably high even when the input is void of any predictive information. Therefore, when removing features with a method like Leave One Out, the change in confidence may not properly reflect whether the "important" input features have been removed. Consequently, interpretation methods that rely on confidence may fail due to issues in the underlying model.
 
 A common failure mode that results from overconfidence is assigning small importance values to many of the input words. This occurs because no matter which word is removed, the confidence of the model remains high, giving each word a small, but non-zero importance value. 
 
 ![Leave One Out Saliency Map](/images/soft_attribution.png)
 
-This is illustrated in the Figure above. Leaving out the word “diane”, causes a 0.10 drop in the probability for the positive class, whereas removing “shines” causes a smaller confidence drop of 0.09. This does not align with human perception, as “shines” is the critical word for classifying the sentiment as positive. This may indicate that the model has not learned the correct feature importance, but, these same confidence issues occur for a variety of highly predictive models (BiLSTMs, deep convolutional networks, attention networks) on diverse datasets.
+This is illustrated in the Sentiment Analysis example above for both Leave One Out using model *Confidence* and the *Gradient* with respect to the input. Leaving out the word “diane”, causes a 0.10 drop in the probability for the positive class, whereas removing “shines” causes a smaller confidence drop of 0.09. This does not align with human perception, as “shines” is the critical word for classifying the sentiment as positive. Moreover, "unfaithful" is incorrectly assigned a negative value (the word refers to the title of a film).
 
 # Deep k-Nearest Neighbors
 
@@ -50,29 +50,24 @@ Using the conformity measure, we can generate interpretations by applying a modi
 
 # Interpretation Results
 
-We compare out interpretation method (*Conformity* Leave One Out) to baseline methods in the Table below. The baselines are standard Leave One Out (*Confidence*), vanilla gradient-based interpretations (*Gradient*), and Leave One Out generated using a model with calibrated confidence (*Calibrated*). See the paper for details on these methods.
-
+We compare our interpretation method (*Conformity* Leave One Out) to standard Leave One Out (*Confidence*) and gradient-based interpretations (*Gradient*) in the table below.
 ![Saliency Comparison](/images/saliency.png)
 
-Using conformity for interpretations, rather than confidence, provides a few useful benefits. First, the change in conformity better separates the importance values, dropping just 0.03 when “diane” is removed, but 0.38 when “shines” is removed. This mitigates the issue where a majority of the input words are assigned a small importance. Notice that the issues with con-
-fidence are not simply in the scale of the importance values. Confidence Leave One Out actually assigns a higher importance score to “Diane” than “shines” as previously discussed.
+Using conformity for interpretations, rather than confidence, provides a few useful benefits. First, the change in conformity better separates the importance values, dropping just 0.03 when “diane” is removed, but 0.38 when “shines” is removed. This mitigates the issue where a majority of the input words are assigned a small importance. Notice that the issues with confidence are not simply in the scale of the importance values. Confidence Leave One Out actually assigns a higher importance score to “Diane” than “shines” as previously discussed.
 
 The second observation for confidence-based approaches is a bias towards selecting word importance based on the inherent sentiment of a word, rather than its meaning in context. For example, see “clash”, “terribly”, and “unfaithful” in the table above. The removal of these words causes a small change in the confidence. When using DKNN, the credibility
 score indicates that the model’s uncertainty has not risen without these input words and thus
 does not assign them any importance.
 
-We would characterize our interpretation method as significantly higher precision, but slightly lower recall than confidence-based methods at selecting human perceived sentiment words. Conformity Leave One Out rarely assigns high importance to words that do not align with human perception of sentiment. However, there are cases when our method does not assign significant
-importance to any word. This occurs when the input has high redundancy, for example, a positive movie review that describes the sentiment in four distinct ways. In these cases, leaving out a single sentiment word has little effect on the conformity because the model’s representation remains supported by the other redundant features.
-
 # SNLI Artifacts
 
 Our interpretation technique is more precise at identifying the words neccesary to make a prediction. Where else can we apply this?
 
-One area we were eager to explore further was the [annotation](https://arxiv.org/abs/1803.02324) [biases](https://arxiv.org/abs/1805.01042) identified in the SNLI dataset. Multiple groups independently showed that training models on only a portion of the input could yield relatively high test accuracies. This occurs due to crowdsource annotation artifacts that correlate with certain labels. 
+One area we were eager to explore further was the [annotation](https://arxiv.org/abs/1803.02324) [biases](https://arxiv.org/abs/1805.01042) identified in the SNLI dataset. Multiple groups independently showed that training models on only a portion of the input could yield relatively high test accuracy. This occurs due to biases introduced in the crowdsourcing process that correlate with certain labels. 
 
 We wanted to see if models that use the full input also learn these biases.  We
-create saliency maps using our interpretation method, using the color green to highlight
-words that support the model's predicted class, and the color pink to highlight words that
+create saliency maps using our interpretation method, using the color blue to highlight
+words that support the model's predicted class, and the color red to highlight words that
 support a different class. 
 
 ![SNLI Interpretations](/images/snli.png)
@@ -84,8 +79,8 @@ In the second example, our interpretation method assigns extremely high word imp
 to "sleeping", disregarding other words necessary to predict Contradiction (i.e., the Neutral class is still possible
 if "pets" is replaced with "people"). In the final two examples, the interpretation
 method diagnoses the model failure, assigning high importance to "wearing", rather than focusing
-positively on the shirt color. Though definitely not conclusive, this does suggest that a model
-trained on the full input may pick up on these biases.
+positively on the shirt color. Interestingly, words identified by conformity Leave One Out better align with annotation
+biases compared to standard Leave One Out (see paper for the full details).
 
 # Conclusion
 
