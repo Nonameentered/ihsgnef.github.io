@@ -1,4 +1,4 @@
-title: ZeroBatchSize
+title: QANTA Blog
 author: 
 email: 
 description: machine learning, natural language processing
@@ -24,7 +24,7 @@ rss: rss
 #   instance: example.com
 #
 
-disqus_shortname: zerobatchsize
+disqus_shortname: qanta
 
 show_excerpts: false # set to true to show excerpts on the homepage
 
